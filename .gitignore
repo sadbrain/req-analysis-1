@@ -11,3 +11,13 @@ override.tf.json
 .terraformrc
 terraform.rc
 terraform.auto.tfvars
+
+# Secrets / variable files (high risk)
+terraform.tfvars
+**/terraform.tfvars
+*.tfvars
+*.tfvars.json
+
+# Optional: keep only example templates
+!*.tfvars.example
+!*.tfvars.json.example

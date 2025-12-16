@@ -1,0 +1,15 @@
+project     = ""
+env         = ""
+aws_region  = ""
+aws_profile = ""
+
+vpc_cidr = ""
+azs      = []
+
+public_subnet_cidrs  = []
+private_subnet_cidrs = []
+
+tags = {
+  Environment = ""
+  Owner       = ""
+}
