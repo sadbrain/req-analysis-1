@@ -35,6 +35,8 @@ locals {
       name = "${var.name}-private-${var.azs[floor(i / 2)]}-${(i % 2) + 1}"
     }
   }
+
+  private_per_az = length(var.private_subnet_cidrs) / length(var.azs)
 }
 
 resource "aws_subnet" "public" {
@@ -61,7 +63,7 @@ resource "aws_subnet" "private" {
   tags = merge(var.tags, {
     Name = each.value.name
     Tier = "private"
-    Slot = tostring(each.value.slot) 
+    Slot = tostring(each.value.slot)
   })
 }
 
@@ -96,8 +98,30 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "private" {
-  for_each = aws_subnet.private
+ for_each = aws_subnet.private
 
-  subnet_id      = each.value.id
-  route_table_id = aws_route_table.private.id
+  subnet_id = each.value.id
+
+  route_table_id = (
+    tonumber(regex("\\d+$", each.key)) % 2 == 0
+    ? aws_route_table.private_app[floor(tonumber(regex("\\d+$", each.key)) / local.private_per_az)].id
+    : aws_route_table.private_db.id
+  )
+}
+
+resource "aws_route_table" "private_app" {
+  count  = length(var.azs)
+  vpc_id = aws_vpc.this.id
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-rt-private-app-${count.index}"
+  })
+}
+
+resource "aws_route_table" "private_db" {
+  vpc_id = aws_vpc.this.id
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-rt-private-db"
+  })
 }
