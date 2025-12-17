@@ -19,7 +19,6 @@ variable "ecs_max_size" {
 }
 
 variable "fe_image" { type = string }
-variable "fe_green_image" { type = string }
 variable "be_image" { type = string }
 
 variable "fe_desired_count" {

@@ -23,9 +23,17 @@ locals {
     ])
   }
 
-  private_app_subnets = [for az in var.azs : local.private_by_az[az][0]]
+  private_app_subnets = [
+    for az in var.azs : one([
+      for s in values(data.aws_subnet.private) : s.id
+      if s.availability_zone == az && endswith(s.tags["Name"], "${az}-1")
+    ])
+  ]
 
   private_db_subnets = [
-    for az in var.azs : local.private_by_az[az][length(local.private_by_az[az]) - 1]
+    for az in var.azs : one([
+      for s in values(data.aws_subnet.private) : s.id
+      if s.availability_zone == az && endswith(s.tags["Name"], "${az}-2")
+    ])
   ]
 }

@@ -3,6 +3,12 @@ variable "name" {
   description = "Name prefix for VPC resources"
 }
 
+variable "key_name" {
+  type        = string
+  description = "EC2 key pair name for SSH access"
+  default     = ""
+}
+
 variable "vpc_cidr" {
   type        = string
   description = "CIDR block for the VPC"
