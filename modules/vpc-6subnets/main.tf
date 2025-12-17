@@ -17,26 +17,31 @@ resource "aws_internet_gateway" "this" {
 }
 
 locals {
-  public = {
-    for i, cidr in var.public_subnet_cidrs :
-    "public-${i}" => {
-      cidr = cidr
-      az   = var.azs[i]
-      name = "${var.name}-public-${var.azs[i]}"
+  # Flatten public subnets from AZ structure
+  public = merge([
+    for az_idx, az in var.azs : {
+      for subnet_idx, cidr in az.public_subnet_cidrs :
+      "public-${az_idx}-${subnet_idx}" => {
+        cidr = cidr
+        az   = az.name
+        name = "${var.name}-public-${az.name}"
+      }
     }
-  }
+  ]...)
 
-  private = {
-    for i, cidr in var.private_subnet_cidrs :
-    "private-${i}" => {
-      cidr = cidr
-      az   = var.azs[floor(i / 2)]
-      slot = (i % 2) + 1
-      name = "${var.name}-private-${var.azs[floor(i / 2)]}-${(i % 2) + 1}"
+  # Flatten private subnets from AZ structure with slot assignment
+  private = merge([
+    for az_idx, az in var.azs : {
+      for subnet_idx, cidr in az.private_subnet_cidrs :
+      "private-${az_idx}-${subnet_idx}" => {
+        cidr     = cidr
+        az       = az.name
+        az_idx   = az_idx
+        slot     = subnet_idx + 1
+        name     = "${var.name}-private-${az.name}-${subnet_idx + 1}"
+      }
     }
-  }
-
-  private_per_az = length(var.private_subnet_cidrs) / length(var.azs)
+  ]...)
 }
 
 resource "aws_subnet" "public" {
@@ -102,9 +107,10 @@ resource "aws_route_table_association" "private" {
 
   subnet_id = each.value.id
 
+  # Slot 1 = app (use per-AZ route table), Slot 2 = db (use shared route table)
   route_table_id = (
-    tonumber(regex("\\d+$", each.key)) % 2 == 0
-    ? aws_route_table.private_app[floor(tonumber(regex("\\d+$", each.key)) / local.private_per_az)].id
+    local.private[each.key].slot == 1
+    ? aws_route_table.private_app[local.private[each.key].az_idx].id
     : aws_route_table.private_db.id
   )
 }

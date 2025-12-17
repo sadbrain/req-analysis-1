@@ -1,0 +1,10 @@
+variable "project" { type = string }
+variable "env" { type = string }
+variable "azs" { type = list(string) }
+variable "vpc_id" { type = string }
+variable "vpc_cidr" { type = string }
+variable "public_subnets" { type = list(string) }
+variable "nat_instance_type" { type = string }
+variable "nat_security_group_id" { type = string }
+variable "key_name" { type = string }
+variable "private_app_route_table_ids" { type = list(string) }

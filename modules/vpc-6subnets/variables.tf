@@ -15,23 +15,12 @@ variable "vpc_cidr" {
 }
 
 variable "azs" {
-  type = list(string)
-}
-
-variable "public_subnet_cidrs" {
-  type = list(string)
-  validation {
-    condition     = length(var.public_subnet_cidrs) == 2
-    error_message = "public_subnet_cidrs phải có đúng 2 CIDR."
-  }
-}
-
-variable "private_subnet_cidrs" {
-  type = list(string)
-  validation {
-    condition     = length(var.private_subnet_cidrs) == 4
-    error_message = "private_subnet_cidrs phải có đúng 4 CIDR."
-  }
+  type = list(object({
+    name                  = string
+    public_subnet_cidrs   = list(string)
+    private_subnet_cidrs  = list(string)
+  }))
+  description = "List of AZs with their subnet CIDRs"
 }
 
 variable "tags" {

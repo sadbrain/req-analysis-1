@@ -1,9 +1,5 @@
-data "aws_subnet" "private" {
-  for_each = toset(module.vpc.private_subnet_ids)
-  id       = each.value
-}
-
 locals {
+  # Default tags applied to all resources
   default_tags = merge(
     {
       Project = var.project
@@ -13,27 +9,18 @@ locals {
     var.tags
   )
 
+  # Public subnets - directly from VPC module
   public_subnets = module.vpc.public_subnet_ids
 
-  private_by_az = {
-    for az in var.azs :
-    az => sort([
-      for s in values(data.aws_subnet.private) : s.id
-      if s.availability_zone == az
-    ])
-  }
+  # App subnets (slot 1) - for ECS, NAT routing
+  private_app_subnets = module.vpc.private_app_subnet_ids
 
-  private_app_subnets = [
-    for az in var.azs : one([
-      for s in values(data.aws_subnet.private) : s.id
-      if s.availability_zone == az && endswith(s.tags["Name"], "${az}-1")
-    ])
-  ]
+  # DB subnets (slot 2+) - for RDS
+  private_db_subnets = module.vpc.private_db_subnet_ids
 
-  private_db_subnets = [
-    for az in var.azs : one([
-      for s in values(data.aws_subnet.private) : s.id
-      if s.availability_zone == az && endswith(s.tags["Name"], "${az}-2")
-    ])
-  ]
+  # Number of AZs - computed dynamically
+  az_count = length(var.azs)
+
+  # Extract AZ names for modules that need list(string)
+  az_names = [for az in var.azs : az.name]
 }
