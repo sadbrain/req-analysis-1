@@ -14,7 +14,9 @@ TF_VARS = -var-file="env/$(ENV)/commons.tfvars" \
           -var-file="env/$(ENV)/nat.tfvars" \
           -var-file="env/$(ENV)/alb.tfvars" \
           -var-file="env/$(ENV)/ecs.tfvars" \
-          -var-file="env/$(ENV)/rds.tfvars"
+          -var-file="env/$(ENV)/rds.tfvars" \
+          -var-file="env/$(ENV)/elasticache.tfvars" \
+          -var-file="env/$(ENV)/monitoring.tfvars"
 
 # Backend config
 # BACKEND_CONFIG = -backend-config="env/$(ENV)/backend.hcl"
@@ -127,10 +129,6 @@ maintenance-off:
 	@echo "Disabling maintenance mode..."
 	aws events put-events --entries '[{"Source":"custom.maintenance","DetailType":"Maintenance Toggle","Detail":"{\"action\":\"OFF\"}"}]' --profile $(AWS_PROFILE)
 	@echo "Event sent! Check logs with: make maintenance-logs"
-
-maintenance-status:
-	@echo "Current maintenance mode status:"
-	@aws ssm get-parameter --name "/req-analysis-1/$(ENV)/maintenance-mode" --query 'Parameter.Value' --output text --profile $(AWS_PROFILE) 2>/dev/null || echo "Parameter not found. Run 'make package-lambda && make apply ENV=$(ENV)' first"
 
 package-lambda:
 	@echo "Packaging Lambda function..."

@@ -6,6 +6,10 @@ output "alb_arn" {
   value = aws_lb.app.arn
 }
 
+output "alb_arn_suffix" {
+  value = aws_lb.app.arn_suffix
+}
+
 output "alb_dns_name" {
   value = aws_lb.app.dns_name
 }

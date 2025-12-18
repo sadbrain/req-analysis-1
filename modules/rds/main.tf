@@ -35,10 +35,11 @@ resource "aws_db_instance" "primary" {
   db_subnet_group_name   = aws_db_subnet_group.this.name
 
   publicly_accessible = false
-  multi_az            = false
-  #   backup_retention_period    = var.db_backup_retention_days
-  #   backup_window              = "03:00-04:00"
-  #   maintenance_window         = "mon:04:00-mon:05:00"
+  multi_az            = true
+  backup_retention_period    = var.db_backup_retention_days
+  backup_window              = "03:00-04:00"
+  maintenance_window         = "mon:04:00-mon:05:00"
+  apply_immediately          = true  # Apply backup changes immediately
   skip_final_snapshot        = true
   final_snapshot_identifier  = null
   deletion_protection        = false
@@ -55,22 +56,22 @@ resource "aws_db_instance" "primary" {
   }
 }
 
-# resource "aws_db_instance" "read_replica" {
-#   identifier = "${var.project}-${var.env}-db-replica"
+resource "aws_db_instance" "read_replica" {
+  identifier = "${var.project}-${var.env}-db-replica"
 
-#   replicate_source_db = aws_db_instance.primary.identifier
-#   instance_class      = var.db_instance_class
+  replicate_source_db = aws_db_instance.primary.identifier
+  instance_class      = var.db_instance_class
 
-#   publicly_accessible        = false
-#   skip_final_snapshot        = true
-#   deletion_protection        = false
-#   auto_minor_version_upgrade = true
+  publicly_accessible        = false
+  skip_final_snapshot        = true
+  deletion_protection        = false
+  auto_minor_version_upgrade = true
 
-#   vpc_security_group_ids = [var.db_security_group_id]
+  vpc_security_group_ids = [var.db_security_group_id]
 
-#   tags = {
-#     Name = "${var.project}-${var.env}-db-replica"
-#   }
+  tags = {
+    Name = "${var.project}-${var.env}-db-replica"
+  }
 
-#   depends_on = [aws_db_instance.primary]
-# }
+  depends_on = [aws_db_instance.primary]
+}

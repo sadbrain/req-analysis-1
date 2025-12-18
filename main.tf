@@ -49,6 +49,22 @@ module "nat" {
   private_app_route_table_ids = module.vpc.private_app_route_table_ids
 }
 
+# Step 3.5: VPC Endpoints for private AWS service access
+module "vpc_endpoints" {
+  source = "./modules/vpc-endpoints"
+
+  depends_on = [module.vpc, module.security_groups]
+
+  project                 = var.project
+  env                     = var.env
+  aws_region              = var.aws_region
+  vpc_id                  = module.vpc.vpc_id
+  private_subnet_ids      = local.private_app_subnets
+  private_route_table_ids = module.vpc.private_app_route_table_ids
+  ecs_security_group_id   = module.security_groups.ecs_sg_id
+  enable_dynamodb_endpoint = false
+}
+
 # Step 4: ALB depends on VPC and Security Groups (now internal)
 module "alb" {
   source = "./modules/alb"
@@ -84,12 +100,12 @@ module "cloudfront" {
 
   depends_on = [module.alb]
 
-  project                        = var.project
-  env                            = var.env
-  alb_dns_name                   = module.alb.alb_dns_name
-  alb_arn                        = module.alb.alb_arn
-  s3_bucket_regional_domain_name = module.s3_assets.bucket_regional_domain_name
-  s3_oac_id                      = module.s3_assets.cloudfront_oac_id
+  project                         = var.project
+  env                             = var.env
+  alb_dns_name                    = module.alb.alb_dns_name
+  alb_arn                         = module.alb.alb_arn
+  s3_bucket_regional_domain_name  = module.s3_assets.bucket_regional_domain_name
+  s3_oac_id                       = module.s3_assets.cloudfront_oac_id
   
   # Custom domain and SSL certificate (only if ACM cert is available)
   domain_names        = var.acm_certificate_id != "" ? ["mixcredevops.online", "green.mixcredevops.online"] : []
@@ -105,6 +121,41 @@ module "maintenance" {
   project            = var.project
   env                = var.env
   alb_listener_arn   = module.alb.http_80_listener_arn
+}
+
+# Step 4.7: ElastiCache Redis for caching
+module "elasticache" {
+  source = "./modules/elasticache"
+
+  depends_on = [module.vpc, module.security_groups, module.ecs_cluster]
+
+  project             = var.project
+  env                 = var.env
+  vpc_id              = module.vpc.vpc_id
+  private_subnet_ids  = local.private_db_subnets
+  allowed_security_groups = [module.security_groups.ecs_sg_id]
+
+  engine_version              = var.elasticache_engine_version
+  node_type                   = var.elasticache_node_type
+  num_cache_nodes             = var.elasticache_num_cache_nodes
+  parameter_group_name        = var.elasticache_parameter_group_name
+  snapshot_retention_limit    = var.elasticache_snapshot_retention_limit
+  snapshot_window             = var.elasticache_snapshot_window
+  maintenance_window          = var.elasticache_maintenance_window
+  transit_encryption_enabled  = var.elasticache_transit_encryption_enabled
+}
+
+# Step 4.8: SQS Queue for async messaging
+module "sqs" {
+  source = "./modules/sqs"
+
+  depends_on = [module.ecs_cluster, module.sns]
+
+  project                     = var.project
+  env                         = var.env
+  ecs_task_execution_role_arn = module.ecs_cluster.task_execution_role_arn
+  critical_sns_topic_arn      = module.sns.critical_alarms_topic_arn
+  business_sns_topic_arn      = module.sns.business_alarms_topic_arn
 }
 
 # Step 5: ECS Cluster and IAM (no compute yet)
@@ -208,4 +259,78 @@ module "ecs_services" {
   db_name            = var.db_name
   db_username        = var.db_master_username
   db_password        = var.db_master_password
+}
+
+# Step 9: SNS Topics for notifications
+module "sns" {
+  source = "./modules/sns"
+
+  project               = var.project
+  env                   = var.env
+  critical_alarm_emails = var.critical_alarm_emails
+  business_alarm_emails = var.business_alarm_emails
+  security_alert_emails = var.security_alert_emails
+}
+
+# Step 10: CloudWatch Alarms and Dashboard
+module "cloudwatch" {
+  source = "./modules/cloudwatch"
+
+  depends_on = [
+    module.sns,
+    module.alb,
+    module.rds,
+    module.elasticache,
+    module.ecs_services,
+    module.cloudfront
+  ]
+
+  project    = var.project
+  env        = var.env
+  aws_region = var.aws_region
+
+  # SNS topics - only critical alarms
+  critical_sns_topic_arn = module.sns.critical_alarms_topic_arn
+
+  # ALB metrics
+  alb_arn_suffix = module.alb.alb_arn_suffix
+
+  # RDS metrics
+  rds_cluster_id = module.rds.primary_identifier
+
+  # ECS metrics
+  ecs_cluster_name = module.ecs_cluster.cluster_name
+
+  # CloudFront metrics (optional)
+  cloudfront_distribution_id = module.cloudfront.cloudfront_id
+}
+
+# Step 11: CloudTrail for audit logging
+module "cloudtrail" {
+  source = "./modules/cloudtrail"
+
+  depends_on = [module.sns]
+
+  project                 = var.project
+  env                     = var.env
+  security_sns_topic_arn  = module.sns.security_alerts_topic_arn
+  multi_region_trail      = true
+  log_retention_days      = 90
+}
+
+# Step 12: AWS Backup for S3 assets bucket
+module "backup" {
+  source = "./modules/backup"
+
+  depends_on = [module.s3_assets, module.sns]
+
+  project                = var.project
+  env                    = var.env
+  s3_bucket_arn          = module.s3_assets.bucket_arn
+  critical_sns_topic_arn = module.sns.critical_alarms_topic_arn
+  
+  # Backup retention
+  daily_retention_days   = 7
+  weekly_retention_days  = 30
+  monthly_retention_days = 365
 }

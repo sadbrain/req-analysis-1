@@ -6,11 +6,13 @@ resource "aws_security_group" "alb" {
   name   = "${var.project}-${var.env}-alb"
   vpc_id = var.vpc_id
 
+  # Allow all traffic (safe because ALB is internal - no public IP)
   ingress {
     from_port   = var.alb_listener_port_fe
     to_port     = var.alb_listener_port_fe
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all traffic to frontend"
   }
 
   ingress {
@@ -18,6 +20,7 @@ resource "aws_security_group" "alb" {
     to_port     = var.alb_listener_port_be
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all traffic to backend"
   }
 
   egress {
