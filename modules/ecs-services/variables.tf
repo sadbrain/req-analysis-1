@@ -17,8 +17,8 @@ variable "be_image" { type = string }
 variable "be_container_port" { type = number }
 variable "be_desired_count" { type = number }
 variable "be_target_group_arn" { type = string }
-variable "be_env" { 
-  type = map(string)
+variable "be_env" {
+  type    = map(string)
   default = {}
 }
 

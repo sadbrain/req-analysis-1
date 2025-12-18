@@ -21,6 +21,12 @@ variable "key_name" {
   default     = ""
 }
 
+variable "acm_certificate_id" {
+  description = "ACM certificate ID for CloudFront (without ARN prefix, certificate must be in us-east-1)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   type        = map(string)
   description = "Additional tags merged into default tags"

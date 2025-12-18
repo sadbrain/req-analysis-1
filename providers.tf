@@ -6,3 +6,6 @@ provider "aws" {
     tags = local.default_tags
   }
 }
+
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}

@@ -16,9 +16,9 @@ variable "vpc_cidr" {
 
 variable "azs" {
   type = list(object({
-    name                  = string
-    public_subnet_cidrs   = list(string)
-    private_subnet_cidrs  = list(string)
+    name                 = string
+    public_subnet_cidrs  = list(string)
+    private_subnet_cidrs = list(string)
   }))
   description = "List of AZs with their subnet CIDRs"
 }

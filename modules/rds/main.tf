@@ -34,16 +34,16 @@ resource "aws_db_instance" "primary" {
   vpc_security_group_ids = [var.db_security_group_id]
   db_subnet_group_name   = aws_db_subnet_group.this.name
 
-  publicly_accessible        = false
-  multi_az                   = false
-#   backup_retention_period    = var.db_backup_retention_days
-#   backup_window              = "03:00-04:00"
-#   maintenance_window         = "mon:04:00-mon:05:00"
+  publicly_accessible = false
+  multi_az            = false
+  #   backup_retention_period    = var.db_backup_retention_days
+  #   backup_window              = "03:00-04:00"
+  #   maintenance_window         = "mon:04:00-mon:05:00"
   skip_final_snapshot        = true
   final_snapshot_identifier  = null
   deletion_protection        = false
   auto_minor_version_upgrade = true
-  
+
   enabled_cloudwatch_logs_exports = []
 
   tags = {

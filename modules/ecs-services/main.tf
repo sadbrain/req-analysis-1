@@ -12,16 +12,16 @@ resource "aws_ecs_task_definition" "fe" {
   execution_role_arn = var.ecs_task_execution_role_arn
 
   container_definitions = jsonencode([{
-    name      = "fe"
-    image     = var.fe_image
-    essential = true
+    name                 = "fe"
+    image                = var.fe_image
+    essential            = true
     force_new_deployment = true
     portMappings = [{
       containerPort = var.fe_container_port
       hostPort      = var.fe_container_port
       protocol      = "tcp"
     }]
-    
+
     logConfiguration = {
       logDriver = "awslogs"
       options = {

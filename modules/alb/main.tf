@@ -3,13 +3,14 @@
 # ============================================================================
 
 resource "aws_lb" "app" {
-  name               = "${var.project}-${var.env}-alb"
+  name               = "${var.project}-${var.env}-internal-alb"
   load_balancer_type = "application"
+  internal           = true # Internal ALB - only accessible via CloudFront
   security_groups    = [var.alb_security_group_id]
-  subnets            = var.public_subnets
+  subnets            = var.private_app_subnets
 
   enable_deletion_protection = false
-#   enable_http2              = true
+  #   enable_http2              = true
 
   lifecycle {
     create_before_destroy = true
@@ -29,6 +30,12 @@ resource "aws_lb_target_group" "fe" {
     unhealthy_threshold = 3
     timeout             = 5
     interval            = 30
+  }
+
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 3600 # 1 hour
+    enabled         = true
   }
 
   deregistration_delay = 30
@@ -78,6 +85,13 @@ resource "aws_lb_target_group" "be" {
 
   deregistration_delay = 30
 
+  # Enable sticky sessions for SignalR/WebSocket
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 3600 # 1 hour
+    enabled         = true
+  }
+
   lifecycle {
     create_before_destroy = true
   }
@@ -99,8 +113,8 @@ resource "aws_lb_listener_rule" "fe_green" {
   priority     = 1
 
   condition {
-    path_pattern {
-      values = ["/green*", "/green/*"]
+    host_header {
+      values = ["green.mixcredevops.online"]
     }
   }
 

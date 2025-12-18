@@ -34,11 +34,11 @@ locals {
     for az_idx, az in var.azs : {
       for subnet_idx, cidr in az.private_subnet_cidrs :
       "private-${az_idx}-${subnet_idx}" => {
-        cidr     = cidr
-        az       = az.name
-        az_idx   = az_idx
-        slot     = subnet_idx + 1
-        name     = "${var.name}-private-${az.name}-${subnet_idx + 1}"
+        cidr   = cidr
+        az     = az.name
+        az_idx = az_idx
+        slot   = subnet_idx + 1
+        name   = "${var.name}-private-${az.name}-${subnet_idx + 1}"
       }
     }
   ]...)
