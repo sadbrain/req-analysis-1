@@ -1,7 +1,7 @@
 output "rds_primary_endpoint" {
   description = "RDS primary endpoint"
   value       = module.rds.primary_endpoint
-  # sensitive   = true
+  sensitive   = true
 }
 
 # output "rds_replica_endpoint" {

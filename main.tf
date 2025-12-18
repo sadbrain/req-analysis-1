@@ -91,9 +91,20 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.s3_assets.bucket_regional_domain_name
   s3_oac_id                      = module.s3_assets.cloudfront_oac_id
   
-  # Custom domain and SSL certificate
-  domain_names        = ["mixcredevops.online", "green.mixcredevops.online"]
+  # Custom domain and SSL certificate (only if ACM cert is available)
+  domain_names        = var.acm_certificate_id != "" ? ["mixcredevops.online", "green.mixcredevops.online"] : []
   acm_certificate_arn = var.acm_certificate_id != "" ? "arn:aws:acm:us-east-1:${data.aws_caller_identity.current.account_id}:certificate/${var.acm_certificate_id}" : ""
+}
+
+# Step 4.6: Maintenance Mode Module
+module "maintenance" {
+  source = "./modules/maintenance"
+
+  depends_on = [module.alb]
+
+  project            = var.project
+  env                = var.env
+  alb_listener_arn   = module.alb.http_80_listener_arn
 }
 
 # Step 5: ECS Cluster and IAM (no compute yet)

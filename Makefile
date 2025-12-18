@@ -5,6 +5,9 @@
 # Default environment
 ENV ?= dev
 
+# AWS Profile (can override: make apply ENV=dev AWS_PROFILE=my-profile)
+AWS_PROFILE ?= mixcre-dev
+
 # Terraform variables files
 TF_VARS = -var-file="env/$(ENV)/commons.tfvars" \
           -var-file="env/$(ENV)/vpcs.tfvars" \
@@ -99,11 +102,11 @@ clean:
 
 logs-fe:
 	@echo "Showing frontend logs..."
-	aws logs tail /ecs/$(ENV)-fe --follow
+	aws logs tail /ecs/$(ENV)-fe --follow --profile $(AWS_PROFILE)
 
 logs-be:
 	@echo "Showing backend logs..."
-	aws logs tail /ecs/$(ENV)-be --follow
+	aws logs tail /ecs/$(ENV)-be --follow --profile $(AWS_PROFILE)
 
 # Full deploy (init + plan + apply)
 deploy: init plan apply
@@ -113,3 +116,22 @@ deploy: init plan apply
 dev-setup: init
 	@echo "Setting up dev environment..."
 	make apply ENV=dev
+
+# Maintenance mode commands
+maintenance-on:
+	@echo "Enabling maintenance mode..."
+	aws events put-events --entries '[{"Source":"custom.maintenance","DetailType":"Maintenance Toggle","Detail":"{\"action\":\"ON\"}"}]' --profile $(AWS_PROFILE)
+	@echo "Event sent! Check logs with: make maintenance-logs"
+
+maintenance-off:
+	@echo "Disabling maintenance mode..."
+	aws events put-events --entries '[{"Source":"custom.maintenance","DetailType":"Maintenance Toggle","Detail":"{\"action\":\"OFF\"}"}]' --profile $(AWS_PROFILE)
+	@echo "Event sent! Check logs with: make maintenance-logs"
+
+maintenance-status:
+	@echo "Current maintenance mode status:"
+	@aws ssm get-parameter --name "/req-analysis-1/$(ENV)/maintenance-mode" --query 'Parameter.Value' --output text --profile $(AWS_PROFILE) 2>/dev/null || echo "Parameter not found. Run 'make package-lambda && make apply ENV=$(ENV)' first"
+
+package-lambda:
+	@echo "Packaging Lambda function..."
+	@cd scripts && ./package-lambda.bat
